@@ -27,7 +27,7 @@
             android:id="@+id/ivCategoryIcon"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:contentDescription="category icon"
+            android:contentDescription="@string/category_icon"
             android:src="@drawable/ic_claims_foreground" />
 
         <!-- Name and date (vertical) -->
@@ -42,7 +42,7 @@
                 android:id="@+id/tvCategoryName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Salary"
+                android:text="@string/salary"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/black"/>
@@ -51,7 +51,7 @@
                 android:id="@+id/tvTransactionDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="2025-10-01"
+                android:text="@string/_2025_10_01"
                 android:textSize="12sp"
                 android:textColor="@color/black"/>
         </LinearLayout>
@@ -61,7 +61,7 @@
             android:id="@+id/tvTransactionAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="+ 1,200.00"
+            android:text="@string/_1_200_00"
             android:textSize="16sp"
             android:layout_marginEnd="12dp"
             android:textStyle="bold"
@@ -75,7 +75,7 @@
             android:layout_marginEnd="8dp"
             android:background="@null"
             android:src="@android:drawable/ic_dialog_info"
-            android:contentDescription="Edit Transaction"/>
+            android:contentDescription="@string/edit_transaction1"/>
 
         <!-- Delete button -->
         <ImageButton
@@ -83,7 +83,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Delete"
+            android:contentDescription="@string/delete3"
             android:minWidth="50dp"
             android:minHeight="50dp"
             android:src="@android:drawable/ic_menu_delete"

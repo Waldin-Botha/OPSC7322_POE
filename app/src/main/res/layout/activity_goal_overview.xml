@@ -25,7 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="My Goals"
+            android:text="@string/my_goals"
             android:textAlignment="center"
             android:textColor="@color/black"
             android:textSize="20sp"
@@ -49,7 +49,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="24dp"
-            android:text="Total Goals: 0"
+            android:text="@string/total_goals_0"
             android:textColor="@color/black"
             android:textSize="14sp" />
 
@@ -57,7 +57,7 @@
             android:id="@+id/tvCompletedGoals"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Completed: 0"
+            android:text="@string/completed_0"
             android:textColor="@color/green"
             android:textSize="14sp" />
     </LinearLayout>
@@ -94,7 +94,7 @@
             android:id="@+id/btnBack"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Back"
+            android:text="@string/back2"
             android:layout_marginEnd="16dp"
             android:backgroundTint="@color/black"
             android:textColor="@color/white"/>
@@ -103,7 +103,7 @@
             android:id="@+id/btnAddGoal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Goal"
+            android:text="@string/add_goal"
             android:backgroundTint="@color/accent_green"
             android:textColor="@color/black"/>
     </LinearLayout>

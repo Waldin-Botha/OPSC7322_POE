@@ -9,7 +9,7 @@
         android:id="@+id/etName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Category Name"
+        android:hint="@string/category_name"
         android:minHeight="48dp"
         android:textColor="@color/black" />
 
@@ -23,7 +23,7 @@
 
     <Button
         android:id="@+id/btnChangeIcon"
-        android:text="Change Icon"
+        android:text="@string/change_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
@@ -39,7 +39,7 @@
 
         <Button
             android:id="@+id/btnCancel"
-            android:text="Cancel"
+            android:text="@string/cancel7"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:backgroundTint="@color/accent_green"
@@ -47,7 +47,7 @@
 
         <Button
             android:id="@+id/btnSaveCategory"
-            android:text="Save"
+            android:text="@string/save2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

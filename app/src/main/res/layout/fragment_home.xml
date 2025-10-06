@@ -42,7 +42,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
-                        android:text="R 9210.00"
+                        android:text="@string/r_9210_00"
                         android:textSize="26sp"
                         android:textStyle="bold"
                         android:textColor="@color/black" />
@@ -56,7 +56,7 @@
                     android:layout_marginStart="8dp"
                     android:background="@drawable/rounded_icon_background"
                     android:src="@drawable/ic_graph_foreground"
-                    android:contentDescription="View Chart" />
+                    android:contentDescription="@string/view_chart" />
 
                 <ImageButton
                     android:id="@+id/btnTrophy"
@@ -65,7 +65,7 @@
                     android:layout_marginStart="8dp"
                     android:background="@drawable/rounded_icon_background"
                     android:src="@drawable/ic_trophy_foreground"
-                    android:contentDescription="Achievements"/>
+                    android:contentDescription="@string/achievements1"/>
             </LinearLayout>
 
             <LinearLayout
@@ -94,7 +94,7 @@
                             android:id="@+id/tvIncomeHeading"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Income"
+                            android:text="@string/income1"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:textColor="@color/black" />
@@ -103,7 +103,7 @@
                             android:id="@+id/tvIncomeValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="R4000,00"
+                            android:text="@string/r4000_00"
                             android:textSize="20sp"
                             android:textStyle="bold"
                             android:textColor="@color/normal_green" />
@@ -130,7 +130,7 @@
                             android:id="@+id/tvExpensesHeading"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Expenses"
+                            android:text="@string/expenses"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:textColor="@color/black" />
@@ -139,7 +139,7 @@
                             android:id="@+id/tvExpensesValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="R1934,00"
+                            android:text="@string/r1934_00"
                             android:textSize="20sp"
                             android:textStyle="bold"
                             android:textColor="@android:color/holo_red_dark" />
@@ -174,7 +174,7 @@
                 android:id="@+id/monthTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="October"
+                android:text="@string/october"
                 android:textSize="18sp"
                 android:gravity="end"
                 android:layout_alignParentRight="true"
@@ -198,7 +198,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginBottom="76dp"
         android:layout_marginEnd="16dp"
-        android:contentDescription="Add Actions"
+        android:contentDescription="@string/add_actions"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="@color/accent_green"
         app:tint="@color/black" />

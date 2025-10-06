@@ -8,7 +8,7 @@
 
     <TextView
         android:id="@+id/tvTitle"
-        android:hint="Delete Catagory"
+        android:hint="@string/delete_catagory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/black"
@@ -19,7 +19,7 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:id="@+id/tvCategoryName"
-        android:text="Delete category?"
+        android:text="@string/delete_category"
         android:textColor="@color/black"
         android:textSize="18sp"
         android:layout_marginStart="15dp"
@@ -35,7 +35,7 @@
 
         <Button
             android:id="@+id/btnCancel"
-            android:text="Cancel"
+            android:text="@string/cancel6"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:backgroundTint="@color/accent_green"
@@ -43,7 +43,7 @@
 
         <Button
             android:id="@+id/btnSaveCategory"
-            android:text="Delete"
+            android:text="@string/delete1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

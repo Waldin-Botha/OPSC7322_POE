@@ -30,7 +30,7 @@
                     android:id="@+id/tvEditGoalTitle"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="EDIT GOAL"
+                    android:text="@string/edit_goal"
 
                     android:textSize="24sp"
                     android:textStyle="bold"
@@ -53,7 +53,7 @@
             android:id="@+id/etGoalName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Goal Name"
+            android:hint="@string/goal_name"
             android:background="@color/light_green"
             android:padding="12dp"
             android:textColor="@color/black"/>
@@ -62,7 +62,7 @@
             android:id="@+id/etDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Description"
+            android:hint="@string/description3"
             android:background="@color/light_green"
             android:padding="12dp"
             android:textColor="@color/black"
@@ -72,7 +72,7 @@
             android:id="@+id/etAmount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Goal Amount"
+            android:hint="@string/goal_amount"
             android:inputType="number"
             android:background="@color/light_green"
             android:padding="12dp"
@@ -83,7 +83,7 @@
             android:id="@+id/etCurrentAmount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Current Progress"
+            android:hint="@string/current_progress"
             android:inputType="number"
             android:background="@color/light_green"
             android:padding="12dp"
@@ -94,7 +94,7 @@
             android:id="@+id/cbCompleted"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Completed"
+            android:text="@string/completed"
             android:textColor="@color/black"
             android:layout_marginTop="8dp"/>
 
@@ -102,7 +102,7 @@
             android:id="@+id/cbBonus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bonus Goal"
+            android:text="@string/bonus_goal"
             android:textColor="@color/black"
             android:layout_marginTop="4dp"/>
 
@@ -110,7 +110,7 @@
             android:id="@+id/btnSaveGoal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save"
+            android:text="@string/save"
             android:backgroundTint="@color/accent_green"
             android:textColor="@color/black"
             android:layout_marginTop="16dp"/>
@@ -119,7 +119,7 @@
             android:id="@+id/btnCancel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cancel"
+            android:text="@string/cancel3"
             android:backgroundTint="@color/red"
             android:textColor="@color/black"
             android:layout_marginTop="8dp"/>

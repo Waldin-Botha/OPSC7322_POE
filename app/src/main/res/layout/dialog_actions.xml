@@ -10,7 +10,7 @@
         android:id="@+id/tvTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Choose Action"
+        android:text="@string/choose_action"
         android:textColor="@color/black"
         android:textSize="24sp"
         android:gravity="center"
@@ -21,7 +21,7 @@
         android:id="@+id/btnCategory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Categories"
+        android:text="@string/categories1"
         android:backgroundTint="@color/accent_green"
         android:textColor="@color/black"
         android:layout_marginBottom="8dp"/>
@@ -30,7 +30,7 @@
         android:id="@+id/btnTransfer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Transfer Funds"
+        android:text="@string/transfer_funds1"
         android:backgroundTint="@color/accent_green"
         android:textColor="@color/black"/>
 </LinearLayout>

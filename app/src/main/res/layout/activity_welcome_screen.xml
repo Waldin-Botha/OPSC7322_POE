@@ -20,7 +20,7 @@
             android:layout_height="150dp"
             android:layout_marginTop="30dp"
             android:layout_marginBottom="5dp"
-            android:contentDescription="app_logo"
+            android:contentDescription="@string/app_logo1"
             android:src="@mipmap/logo_foreground"
             app:layout_constraintBottom_toTopOf="@+id/cardSection"
             app:layout_constraintEnd_toEndOf="parent"
@@ -32,7 +32,7 @@
             android:id="@+id/tvAppName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SAFE SPEND"
+            android:text="@string/safe_spend1"
             android:textColor="@color/light_green"
             android:textSize="28sp"
             android:textStyle="bold"
@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:gravity="center"
-            android:text="Personal budgeting made easy"
+            android:text="@string/personal_budgeting_made_easy1"
             android:textColor="@android:color/white"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -73,7 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Track and manage your finances"
+            android:text="@string/track_and_manage_your_finances1"
             android:textColor="@android:color/white"
             android:textSize="15sp"
             android:typeface="sans" />
@@ -85,7 +85,7 @@
             android:layout_marginTop="250dp"
             app:cornerRadius="10dp"
             android:backgroundTint="@color/dark_green"
-            android:text="Sign In"
+            android:text="@string/sign_in1"
             android:textColor="@android:color/white" />
 
         <LinearLayout
@@ -99,7 +99,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="Don't have an account?"
+                android:text="@string/don_t_have_an_account1"
                 android:textColor="@android:color/black"
                 android:textSize="14sp" />
 

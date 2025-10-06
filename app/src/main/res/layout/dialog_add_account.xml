@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:hint="Account Name"
+        android:hint="@string/account_name"
         android:padding="18dp"
         android:inputType="textPersonName" />
 
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:hint="Balance (e.g. 1000)"
+        android:hint="@string/balance_e_g_1000"
         android:inputType="numberDecimal"
         android:padding="18dp"
         android:layout_marginTop="16dp" />
@@ -31,7 +31,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Colour"
+        android:text="@string/colour"
         android:textSize="18sp"
         android:layout_marginTop="10dp"
         android:textStyle="bold" />
@@ -51,7 +51,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:checked="true"
-            android:text="Red"
+            android:text="@string/red"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@android:color/holo_red_dark" />
@@ -60,7 +60,7 @@
             android:id="@+id/radioGreen"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Green"
+            android:text="@string/green"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@android:color/holo_green_dark" />
@@ -69,7 +69,7 @@
             android:id="@+id/radioBlue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Blue"
+            android:text="@string/blue"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@android:color/holo_blue_dark" />
@@ -78,7 +78,7 @@
             android:id="@+id/radioWhite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="White"
+            android:text="@string/white"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/white" />
@@ -87,7 +87,7 @@
             android:id="@+id/radioYellow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Yellow"
+            android:text="@string/yellow"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/yellow" />
@@ -96,7 +96,7 @@
             android:id="@+id/radioOrange"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Orange"
+            android:text="@string/orange"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/orange" />
@@ -105,7 +105,7 @@
             android:id="@+id/radioPink"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pink"
+            android:text="@string/pink"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/pink" />
@@ -114,7 +114,7 @@
             android:id="@+id/radioPurple"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Purple"
+            android:text="@string/purple"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/purple" />
