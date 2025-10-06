@@ -1,0 +1,76 @@
+<resources>
+    <string name="app_name">SafeSpend</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Goals</string>
+    <string name="title_notifications">Settings</string>
+    <string name="app_logo">App Logo</string>
+    <string name="safe_spend">SAFE SPEND</string>
+    <string name="personal_budgeting_made_easy">Personal budgeting made easy</string>
+    <string name="track_and_manage_your_finances">Track and manage your finances</string>
+    <string name="sign_in">Sign In</string>
+    <string name="sign_in_welcome">Sign In</string>
+    <string name="don_t_have_an_account">Don\'t have an account?</string>
+    <string name="sign_up"><u>Sign Up</u></string>
+    <string name="username">Username</string>
+    <string name="johndoe123">JohnDoe123</string>
+    <string name="password">••••••</string>
+    <string name="create_account">CREATE ACCOUNT</string>
+    <string name="sign_up_account">SIGN UP</string>
+    <string name="account_login">ACCOUNT LOGIN</string>
+    <string name="achievements">ACHIEVEMENTS</string>
+    <string name="streaks">Streaks</string>
+    <string name="days">Days</string>
+    <string name="daily_counter">8</string>
+    <string name="goals">Goals</string>
+    <string name="monthly_goal_number">3</string>
+    <string name="bonus_goals_monthly">Bonus Goals (Monthly)</string>
+    <string name="account_1">Account 1</string>
+    <string name="account1_points">+50</string>
+    <string name="account_2">Account 2</string>
+    <string name="account2_points">+50</string>
+    <string name="goals_achieved">Goals Achieved</string>
+    <string name="achieved_goals_points">1/2</string>
+    <string name="total_points">Total Points</string>
+    <string name="total_points_number">100</string>
+    <string name="overall_success">Overall Success</string>
+    <string name="tier_level">Tier Level</string>
+    <string name="status">Status</string>
+    <string name="bronze">Bronze</string>
+    <string name="back">Back</string>
+    <string name="username_text">JohnDoe123</string>
+    <string name="edit_username">Edit Username</string>
+    <string name="password_heading">Password</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="confirmation">Confirmation</string>
+    <string name="proceed">Proceed</string>
+    <string name="delete">Delete</string>
+    <string name="johnd_e">password_text</string>
+    <string name="username_heading">Username</string>
+    <string name="account">ACCOUNT</string>
+    <string name="dark">Dark</string>
+    <string name="light">Light</string>
+    <string name="theme">Theme</string>
+    <string name="customisation">CUSTOMISATION</string>
+
+    <string-array name="username_options">
+        <item>JohnDoe123</item>
+    </string-array>
+
+    <string-array name="password_options">
+        <item>Change</item>
+    </string-array>
+
+    <string-array name="sign_out_options">
+        <item>Yes</item>
+        <item>No</item>
+    </string-array>
+
+    <string-array name="delete_options">
+        <item>Yes</item>
+        <item>No</item>
+    </string-array>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+
+</resources>
