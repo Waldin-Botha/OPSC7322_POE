@@ -13,262 +13,283 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import za.ac.iie.opsc_poe_screens.databinding.ActivityEditTransactionBinding
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
-/**
- * Activity for editing an existing transaction.
- * Supports editing amount, description, category, date, receipt, and recurring status.
- */
 class EditTransaction : AppCompatActivity() {
 
-    // UI Elements
-    private lateinit var etAmount: EditText
-    private lateinit var etDescription: EditText
-    private lateinit var spinnerAccount: Spinner
-    private lateinit var spinnerCategory: Spinner
-    private lateinit var tvDate: TextView
-    private lateinit var cbRecurring: CheckBox
-    private lateinit var btnPickDate: Button
-    private lateinit var btnAttachReceipt: Button
-    private lateinit var btnViewReceipt: Button
-    private lateinit var btnSave: Button
-    private lateinit var btnCancel: Button
+    private lateinit var binding: ActivityEditTransactionBinding
+    private val calendar: Calendar = Calendar.getInstance()
 
-    // Camera capture
+    // --- Firebase and Data ---
+    private lateinit var repository: FirebaseRepository
+    private lateinit var currentUserId: String
+    private var transactionId: String? = null
+    private var editingTransaction: FinancialTransaction? = null
+    private var accountsList: List<Account> = emptyList()
+    private var categoriesList: List<Category> = emptyList()
+
+    // --- Camera and Permissions ---
     private lateinit var takePictureLauncher: ActivityResultLauncher<Intent>
+    private var newPhotoUri: Uri? = null // For a newly captured photo
     private var currentPhotoFile: File? = null
-    private lateinit var photoUri: Uri
-
-    // Transaction data
-    private var selectedDate: Date = Date()
-    private var transactionId: Int = -1
-    private var transactionEntity: TransactionEntity? = null
-
-    // Database references
-    private lateinit var database: AppDatabase
-    private var accountsList: List<AccountEntity> = emptyList()
-    private var categoriesList: List<CategoryEntity> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityEditTransactionBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         supportActionBar?.hide()
-        setContentView(R.layout.activity_edit_transaction)
+        hideSystemUI()
 
-        // Hide UI
-        val decorView = window.decorView
-        val uiOptions = (View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
-        decorView.systemUiVisibility = uiOptions
+        // Get the user ID from our manual UserSession singleton
+        val userId = UserSession.currentUserId
+        transactionId = intent.getStringExtra("transactionId")
 
-        // Initialize UI references
-        etAmount = findViewById(R.id.etAmount)
-        etDescription = findViewById(R.id.etDescription)
-        spinnerAccount = findViewById(R.id.spinnerAccount)
-        spinnerCategory = findViewById(R.id.spinnerCategory)
-        tvDate = findViewById(R.id.tvDate)
-        cbRecurring = findViewById(R.id.cbRecurring)
-        btnPickDate = findViewById(R.id.btnPickDate)
-        btnAttachReceipt = findViewById(R.id.btnAttachReceipt)
-        btnViewReceipt = findViewById(R.id.btnViewReceipt)
-        btnSave = findViewById(R.id.btnSaveTransaction)
-        btnCancel = findViewById(R.id.btnCancel)
+        // Check if the user is logged in AND a transactionId was passed
+        if (userId == null || transactionId.isNullOrBlank()) {
+            Toast.makeText(this, "Error: Invalid user session or transaction.", Toast.LENGTH_LONG).show()
 
-        // Initialize database
-        database = AppDatabase.getDatabase(this)
+            // If the problem is the user session, redirect to sign in
+            if (userId == null) {
+                val intent = Intent(this, SignIn::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+            }
 
-        // Get transaction ID from Intent
-        transactionId = intent.getIntExtra("transactionId", -1)
-        if (transactionId == -1) finish() // Invalid transaction ID
+            finish() // Close this activity
+            return   // Stop executing any further code
+        }
 
-        // Set up camera launcher and load transaction data
-        setupTakePictureLauncher()
-        loadData()
+        // If we reach here, the user is logged in. Store their ID and initialize the repository.
+        currentUserId = userId
+        repository = FirebaseRepository()
+
+        setupCameraLauncher()
         setupButtons()
         setupDatePicker()
+
+        // Load all necessary data from Firestore
+        loadInitialData()
     }
 
-    /**
-     * Load accounts, categories, and transaction data asynchronously.
-     */
-    private fun loadData() {
-        CoroutineScope(Dispatchers.IO).launch {
-            accountsList = database.accountDao().getAllAccounts(UserSession.currentUserId)
-            categoriesList = database.categoryDao().getAllCategories()
-            transactionEntity = database.transactionDao().getTransactionById(transactionId)
+    private fun loadInitialData() {
+        //binding.progressBar.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            try {
+                // Fetch all data in parallel
+                val transaction = repository.getTransactionById(currentUserId, transactionId!!)
+                val accounts = repository.getUserAccounts(currentUserId)
+                val categories = repository.getUserCategories(currentUserId)
 
-            transactionEntity?.let { txn -> selectedDate = txn.date }
+                if (transaction == null) {
+                    Toast.makeText(this@EditTransaction, "Error: Transaction not found.", Toast.LENGTH_LONG).show()
+                    finish()
+                    return@launch
+                }
 
-            withContext(Dispatchers.Main) {
+                // Assign fetched data
+                editingTransaction = transaction
+                accountsList = accounts
+                categoriesList = categories
+
+                // Populate UI on the main thread
                 populateSpinners()
-                bindTransaction()
+                bindTransactionData()
+                //binding.progressBar.visibility = View.GONE
+
+            } catch (e: Exception) {
+                //binding.progressBar.visibility = View.GONE
+                Toast.makeText(this@EditTransaction, "Failed to load data: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    /**
-     * Populate account and category spinners with database values.
-     */
     private fun populateSpinners() {
-        val accountNames = accountsList.map { it.AccountName }
-        spinnerAccount.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            accountNames
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        // Accounts spinner
+        val accountNames = accountsList.map { it.accountName }
+        binding.spinnerAccount.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, accountNames).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
+        // Categories spinner (both income and expense)
         val categoryNames = categoriesList.map { it.name }
-        spinnerCategory.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            categoryNames
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-    }
-
-    /**
-     * Bind transaction data to UI fields for editing.
-     */
-    private fun bindTransaction() {
-        transactionEntity?.let { txn ->
-            etAmount.setText(txn.amount.toString())
-            etDescription.setText(txn.description)
-            spinnerAccount.setSelection(accountsList.indexOfFirst { it.id == txn.accountId })
-            spinnerAccount.isEnabled = false
-            spinnerAccount.isClickable = false
-            spinnerCategory.setSelection(categoriesList.indexOfFirst { it.id == txn.categoryId })
-            cbRecurring.isChecked = txn.recurring
-            tvDate.text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(selectedDate)
-
-            txn.receiptPath?.let {
-                val file = File(it)
-                if (file.exists()) currentPhotoFile = file
-            }
+        binding.spinnerCategory.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categoryNames).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
     }
 
-    /**
-     * Configure the date picker dialog for changing transaction date.
-     */
+    private fun bindTransactionData() {
+        editingTransaction?.let { txn ->
+            calendar.time = txn.date
+            binding.etAmount.setText(abs(txn.amount).toString()) // Show positive value for editing
+            binding.etDescription.setText(txn.description)
+            binding.cbRecurring.isChecked = txn.isRecurring
+            binding.tvDate.text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(txn.date)
+
+            // Set spinner selections
+            val accountIndex = accountsList.indexOfFirst { it.id == txn.accountId }
+            if (accountIndex != -1) binding.spinnerAccount.setSelection(accountIndex)
+
+            val categoryIndex = categoriesList.indexOfFirst { it.id == txn.categoryId }
+            if (categoryIndex != -1) binding.spinnerCategory.setSelection(categoryIndex)
+
+            // Disable account spinner as it shouldn't be changed
+            binding.spinnerAccount.isEnabled = false
+
+            // Show "View Receipt" button if a URL exists
+            // IF SOMETING BREAKS REMOVE THE RETURN TODO remove return if stuff break
+            binding.btnViewReceipt.visibility = if (txn.receiptUrl.isNullOrBlank()) View.GONE else View.VISIBLE
+        }
+    }
+
     private fun setupDatePicker() {
-        btnPickDate.setOnClickListener {
-            val cal = Calendar.getInstance().apply { time = selectedDate }
+        binding.btnPickDate.setOnClickListener {
             DatePickerDialog(
                 this,
                 { _, year, month, dayOfMonth ->
-                    cal.set(year, month, dayOfMonth)
-                    selectedDate = cal.time
-                    tvDate.text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(selectedDate)
+                    calendar.set(year, month, dayOfMonth)
+                    binding.tvDate.text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(calendar.time)
                 },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
             ).show()
         }
     }
 
-    /**
-     * Configure buttons for saving, cancelling, attaching, and viewing receipts.
-     */
     private fun setupButtons() {
-        btnSave.setOnClickListener { saveTransaction() }
-        btnCancel.setOnClickListener { finish() }
+        binding.btnSaveTransaction.setOnClickListener { saveTransaction() }
+        binding.btnCancel.setOnClickListener { finish() }
+        binding.btnAttachReceipt.setOnClickListener { launchCamera() }
 
-        btnAttachReceipt.setOnClickListener {
-            try {
-                currentPhotoFile = File.createTempFile(
-                    "IMG_${System.currentTimeMillis()}",
-                    ".jpg",
-                    getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                )
-                photoUri = FileProvider.getUriForFile(
-                    this,
-                    "${applicationContext.packageName}.provider",
-                    currentPhotoFile!!
-                )
-                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-                    putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+        binding.btnViewReceipt.setOnClickListener {
+            editingTransaction?.receiptUrl?.let { url ->
+                if (url.isNotBlank()) {
+                    showReceiptDialog(url)
                 }
-                takePictureLauncher.launch(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "Error preparing camera", Toast.LENGTH_SHORT).show()
-                Log.e("EditTransaction", "Error launching camera", e)
             }
-        }
-
-        btnViewReceipt.setOnClickListener {
-            currentPhotoFile?.let { file ->
-                if (file.exists()) showReceiptDialog(file)
-                else Toast.makeText(this, "Receipt file not found", Toast.LENGTH_SHORT).show()
-            } ?: Toast.makeText(this, "No receipt attached", Toast.LENGTH_SHORT).show()
         }
     }
 
-    /**
-     * Setup camera capture launcher to handle photo results.
-     */
-    private fun setupTakePictureLauncher() {
-        takePictureLauncher =
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode == RESULT_OK) {
-                    Toast.makeText(this, "Photo taken", Toast.LENGTH_SHORT).show()
-                } else {
-                    currentPhotoFile?.delete()
-                    currentPhotoFile = null
-                    Toast.makeText(this, "Photo capture cancelled", Toast.LENGTH_SHORT).show()
-                }
-            }
-    }
-
-    /**
-     * Save the edited transaction to the database.
-     */
     private fun saveTransaction() {
-        val amount = etAmount.text.toString().toFloatOrNull()
-        if (amount == null) {
-            Toast.makeText(this, "Enter valid amount", Toast.LENGTH_SHORT).show()
+        val originalTxn = editingTransaction ?: return
+        val amountInput = binding.etAmount.text.toString().toDoubleOrNull()
+        if (amountInput == null || amountInput <= 0) {
+            Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val description = etDescription.text.toString()
-        val categoryId = categoriesList[spinnerCategory.selectedItemPosition].id
-        val recurring = cbRecurring.isChecked
-        val receiptPath = currentPhotoFile?.absolutePath
+        val finalAmount = if (originalTxn.amount < 0) -amountInput else amountInput
+        val selectedCategory = categoriesList.getOrNull(binding.spinnerCategory.selectedItemPosition)
 
-        val updatedTransaction = transactionEntity?.copy(
-            amount = amount,
-            description = description,
-            categoryId = categoryId,
-            recurring = recurring,
-            date = selectedDate,
-            receiptPath = receiptPath
-        )
+        if (selectedCategory == null) {
+            Toast.makeText(this, "Please select a category.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        updatedTransaction?.let { txn ->
-            CoroutineScope(Dispatchers.IO).launch {
-                database.transactionDao().updateTransaction(txn)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@EditTransaction, "Transaction updated!", Toast.LENGTH_SHORT).show()
-                    finish()
+        binding.btnSaveTransaction.isEnabled = false
+
+        lifecycleScope.launch {
+            try {
+                var finalReceiptPath = originalTxn.receiptUrl
+
+                // A new photo was taken to replace the old one.
+                if (newPhotoUri != null && currentPhotoFile != null) {
+                    // 1. Create a new permanent file for the new receipt.
+                    val permanentFile = createPermanentImageFile()
+
+                    // 2. Copy the newly captured photo's content to the permanent file.
+                    contentResolver.openInputStream(newPhotoUri!!)?.use { input ->
+                        permanentFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    // 3. Set the final path to the new file's path.
+                    finalReceiptPath = permanentFile.absolutePath
+
+                    // 4. IMPORTANT: Delete the OLD receipt file if it exists.
+                    originalTxn.receiptUrl?.let { oldPath ->
+                        if (oldPath.isNotBlank()) {
+                            File(oldPath).delete()
+                        }
+                    }
+
+                    // 5. Clean up the temporary file created by the camera.
+                    currentPhotoFile?.delete()
                 }
+
+                // Create the updated transaction object
+                val updatedTransaction = originalTxn.copy(
+                    amount = finalAmount,
+                    description = binding.etDescription.text.toString().trim(),
+                    categoryId = selectedCategory.id,
+                    isRecurring = binding.cbRecurring.isChecked,
+                    date = calendar.time,
+                    receiptUrl = finalReceiptPath // This is now the local path
+                )
+
+                repository.updateTransaction(currentUserId, updatedTransaction)
+                Toast.makeText(this@EditTransaction, "Transaction updated!", Toast.LENGTH_SHORT).show()
+                finish()
+
+            } catch (e: Exception) {
+                binding.btnSaveTransaction.isEnabled = true
+                Toast.makeText(this@EditTransaction, "Failed to update transaction: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e("EditTransaction", "Error saving transaction", e)
             }
         }
     }
 
-    /**
-     * Display the attached receipt image in a dialog.
-     */
-    private fun showReceiptDialog(file: File) {
+    // --- Camera and Dialog Logic ---
+
+    private fun launchCamera() {
+        try {
+            currentPhotoFile = File.createTempFile("IMG_${System.currentTimeMillis()}", ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES))
+            newPhotoUri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", currentPhotoFile!!)
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, newPhotoUri)
+            takePictureLauncher.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error preparing camera", Toast.LENGTH_SHORT).show()
+            Log.e("EditTransaction", "Error launching camera", e)
+        }
+    }
+
+    private fun setupCameraLauncher() {
+        takePictureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                Toast.makeText(this, "New photo attached", Toast.LENGTH_SHORT).show()
+                binding.btnAttachReceipt.text = "REPLACE PHOTO"
+            } else {
+                currentPhotoFile?.delete()
+                newPhotoUri = null
+                Toast.makeText(this, "Photo capture cancelled", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showReceiptDialog(imagePath: String) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_receipt, null)
         val imageView = dialogView.findViewById<ImageView>(R.id.ivReceipt)
         val closeButton = dialogView.findViewById<Button>(R.id.btnCloseReceipt)
 
-        imageView.setImageURI(Uri.fromFile(file))
+        val imageFile = File(imagePath)
+
+        if (imageFile.exists()) {
+            // Decode the file path directly into a Bitmap and set it on the ImageView.
+            val bitmap = android.graphics.BitmapFactory.decodeFile(imageFile.absolutePath)
+            imageView.setImageBitmap(bitmap)
+        } else {
+            // If the file is somehow missing, show an error.
+            Toast.makeText(this, "Error: Receipt file not found on device.", Toast.LENGTH_SHORT).show()
+            imageView.visibility = View.GONE
+        }
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
@@ -276,5 +297,24 @@ class EditTransaction : AppCompatActivity() {
 
         closeButton.setOnClickListener { dialog.dismiss() }
         dialog.show()
+    }
+
+
+    private fun createPermanentImageFile(): File {
+        // Create a directory named "receipts" in your app's private files folder
+        val storageDir = File(filesDir, "receipts")
+        if (!storageDir.exists()) {
+            storageDir.mkdirs() // Create the directory if it doesn't exist
+        }
+        // Create the image file inside that directory
+        return File.createTempFile("RECEIPT_${System.currentTimeMillis()}", ".jpg", storageDir)
+    }
+
+    private fun hideSystemUI() {
+        val decorView = window.decorView
+        val uiOptions = (View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+        decorView.systemUiVisibility = uiOptions
     }
 }

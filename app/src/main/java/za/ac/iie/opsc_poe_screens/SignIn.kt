@@ -6,64 +6,66 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
+import za.ac.iie.opsc_poe_screens.databinding.ActivitySignInBinding // Using View Binding
 
 class SignIn : AppCompatActivity() {
-    private lateinit var userDao: UserDao
+
+    // --- Firebase and Repository ---
+    private lateinit var repository: FirebaseRepository
+    private lateinit var binding: ActivitySignInBinding // Switched to View Binding for safety
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_sign_in)
+        // Inflate the layout using View Binding
+        binding = ActivitySignInBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         supportActionBar?.hide()
         hideSystemUI()
 
-        val db = AppDatabase.getDatabase(this)
-        userDao = db.userDao()
+        repository = FirebaseRepository()
 
-        val btnLogin = findViewById<MaterialButton>(R.id.btnLogin)
-        val etUsername = findViewById<TextInputEditText>(R.id.etUsername)
-        val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
+        // Handle the login button click
+        binding.btnLogin.setOnClickListener {
+            // Get username and password from the input fields
+            val username = binding.etUsername.text.toString().trim()
+            val password = binding.etPassword.text.toString()
 
-        btnLogin.setOnClickListener {
-            val username = etUsername.text.toString().trim()
-            val password = etPassword.text.toString()
-
+            // Basic validation
             if (username.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Please enter username and password", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            binding.btnLogin.isEnabled = false
+
+            // Launch a coroutine to handle the sign-in process
             lifecycleScope.launch {
-                val user = userDao.login(username, password)
-                if (user != null) {
-                    // --- START OF STREAK LOGIC ---
-                    // Check last login date and update streak accordingly.
+                try {
+                    val username = binding.etUsername.text.toString().trim()
+                    val password = binding.etPassword.text.toString()
+
+                    // Call the new manual sign-in method from the repository
+                    val userId = repository.manualSignIn(username, password)
+
+                    // Set the current user's ID and username in the session
+                    UserSession.currentUserId = userId
+                    UserSession.currentUsername = username
+
+                    // --- Your existing logic continues here ---
                     StreakManager.updateUserStreak(this@SignIn)
-                    // --- END OF STREAK LOGIC ---
-
-                    // Save globally to UserSession
-                    UserSession.currentUserId = user.id
-                    UserSession.currentUsername = user.username
-                    UserSession.currentPassword = user.passwordHash
-
-                    // Save to SharedPreferences for persistence
-                    val sharedPreferences = getSharedPreferences("UserSession", MODE_PRIVATE)
-                    val editor = sharedPreferences.edit()
-                    editor.putInt("userId", user.id) // Also save the ID
-                    editor.putString("username", user.username)
-                    editor.putString("password", user.passwordHash)
-                    editor.apply()
 
                     // Navigate to MainActivity after successful login
+                    Toast.makeText(this@SignIn, "Login Successful", Toast.LENGTH_SHORT).show()
                     val intent = Intent(this@SignIn, MainActivity::class.java)
                     startActivity(intent)
-                    finish()
+                    finish() // Finish SignIn activity so user can't go back to it
 
-                } else {
-                    Toast.makeText(this@SignIn, "Invalid credentials", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    binding.btnLogin.isEnabled = true
+                    // Display the specific error from our manual sign-in logic
+                    Toast.makeText(this@SignIn, "Login failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/dark_grey">
 
     <LinearLayout
@@ -10,12 +10,12 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Header Card -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="80dp"
             android:layout_marginBottom="20dp"
             android:backgroundTint="@color/dark_green">
-
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -25,106 +25,121 @@
                 android:layout_marginBottom="10dp"
                 android:backgroundTint="@color/light_green"
                 app:cardCornerRadius="12dp">
-
                 <TextView
                     android:id="@+id/tvEditGoalTitle"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:text="@string/edit_goal"
-
                     android:textSize="24sp"
                     android:textStyle="bold"
                     android:textColor="@color/black"
                     android:gravity="center"/>
-
             </androidx.cardview.widget.CardView>
-
-
         </androidx.cardview.widget.CardView>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp">
-
-        <EditText
-            android:id="@+id/etGoalName"
+        <!-- Form Fields -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/goal_name"
-            android:background="@color/light_green"
-            android:padding="12dp"
-            android:textColor="@color/black"/>
+            android:orientation="vertical"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp">
 
-        <EditText
-            android:id="@+id/etDescription"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/description3"
-            android:background="@color/light_green"
-            android:padding="12dp"
-            android:textColor="@color/black"
-            android:layout_marginTop="8dp"/>
+            <!-- Goal Name -->
+            <EditText
+                android:id="@+id/etGoalName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/goal_name"
+                android:background="@color/light_green"
+                android:padding="12dp"
+                android:textColor="@color/black"/>
 
-        <EditText
-            android:id="@+id/etAmount"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/goal_amount"
-            android:inputType="number"
-            android:background="@color/light_green"
-            android:padding="12dp"
-            android:textColor="@color/black"
-            android:layout_marginTop="8dp"/>
+            <!-- Account Spinner -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Link to Account"
+                android:layout_marginTop="16dp"
+                android:textColor="@color/white" />
+            <Spinner
+                android:id="@+id/spinnerAccount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:background="@color/light_green"
+                android:layout_marginTop="4dp" />
 
-        <EditText
-            android:id="@+id/etCurrentAmount"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/current_progress"
-            android:inputType="number"
-            android:background="@color/light_green"
-            android:padding="12dp"
-            android:textColor="@color/black"
-            android:layout_marginTop="8dp"/>
+            <!-- Goal Type Radio Group -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Goal Type"
+                android:layout_marginTop="16dp"
+                android:textColor="@color/white" />
+            <RadioGroup
+                android:id="@+id/rgGoalType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+                <RadioButton
+                    android:id="@+id/rbSpending"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Spending"
+                    android:textColor="@color/white"
+                    android:checked="true"/>
+                <RadioButton
+                    android:id="@+id/rbSavings"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:text="Savings"/>
+            </RadioGroup>
 
-        <CheckBox
-            android:id="@+id/cbCompleted"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/completed"
-            android:textColor="@color/black"
-            android:layout_marginTop="8dp"/>
+            <CheckBox
+                android:id="@+id/cbBonus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bonus Goal"
+                android:textColor="@color/white"
+                android:layout_marginTop="16dp"/>
 
-        <CheckBox
-            android:id="@+id/cbBonus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/bonus_goal"
-            android:textColor="@color/black"
-            android:layout_marginTop="4dp"/>
+            <!-- Goal Amount -->
+            <EditText
+                android:id="@+id/etAmount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/goal_amount"
+                android:inputType="numberDecimal"
+                android:background="@color/light_green"
+                android:padding="12dp"
+                android:textColor="@color/black"
+                android:layout_marginTop="16dp"/>
 
-        <Button
-            android:id="@+id/btnSaveGoal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/save"
-            android:backgroundTint="@color/accent_green"
-            android:textColor="@color/black"
-            android:layout_marginTop="16dp"/>
+            <!-- Current Amount and Completed CheckBox are REMOVED -->
+            <!-- They are now calculated automatically by the Goal Processor -->
 
-        <Button
-            android:id="@+id/btnCancel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/cancel3"
-            android:backgroundTint="@color/red"
-            android:textColor="@color/black"
-            android:layout_marginTop="8dp"/>
+            <Button
+                android:id="@+id/btnSaveGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/save"
+                android:backgroundTint="@color/accent_green"
+                android:textColor="@color/black"
+                android:layout_marginTop="24dp"/>
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/cancel3"
+                android:backgroundTint="@color/red"
+                android:textColor="@color/black"
+                android:layout_marginTop="8dp"/>
         </LinearLayout>
-
     </LinearLayout>
-
 </ScrollView>

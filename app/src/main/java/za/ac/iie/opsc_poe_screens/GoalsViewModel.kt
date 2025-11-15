@@ -1,35 +1,89 @@
 package za.ac.iie.opsc_poe_screens
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import kotlinx.coroutines.launch
 
-// The ViewModel now takes 'userId' as a constructor parameter.
-class GoalsViewModel(
-    private val dao: GoalDao,
-    private val userId: Int // Add userId here
-) : ViewModel() {
+class GoalsViewModel(private val repository: FirebaseRepository) : ViewModel() {
 
-    // Use the 'userId' from the constructor to fetch the goals.
-    val allGoals: LiveData<List<GoalEntity>> = dao.getAllGoals(userId)
+    private val _allGoals = MutableLiveData<List<Goal>>()
+    val allGoals: LiveData<List<Goal>> = _allGoals
 
-    fun addGoal(goal: GoalEntity) = viewModelScope.launch {
-        // Ensure the goal being added belongs to the correct user.
-        if (goal.userId == userId) {
-            dao.insertGoal(goal)
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> = _error
+
+    /**
+     * Fetches all goals for a given user from Firestore.
+     */
+    fun loadAllGoals(userId: String?) {
+        // If the userId is null, do not proceed.
+        if (userId == null) {
+            _error.value = "User ID is missing. Cannot load goals."
+            _allGoals.value = emptyList() // Clear any old data
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _allGoals.value = repository.getAllGoals(userId)
+            } catch (e: Exception) {
+                _error.value = "Failed to load goals: ${e.message}"
+            }
         }
     }
 
-    fun updateGoal(goal: GoalEntity) = viewModelScope.launch {
-        if (goal.userId == userId) {
-            dao.updateGoal(goal)
+    fun addGoal(userId: String?, goal: Goal) {
+        if (userId == null) {
+            _error.value = "Cannot add goal: User not logged in."
+            return
+        }
+        viewModelScope.launch {
+            try {
+                repository.addGoal(userId, goal)
+                // Refresh the list after adding
+                loadAllGoals(userId)
+            } catch (e: Exception) {
+                _error.postValue("Failed to add goal: ${e.message}")
+            }
         }
     }
 
-    fun deleteGoal(goal: GoalEntity) = viewModelScope.launch {
-        if (goal.userId == userId) {
-            dao.deleteGoal(goal)
+    fun updateGoal(userId: String?, goal: Goal) {
+        if (userId == null) {
+            _error.value = "Cannot update goal: User not logged in."
+            return
+        }
+        viewModelScope.launch {
+            try {
+                repository.updateGoal(userId, goal)
+                // Refresh the list after updating
+                loadAllGoals(userId)
+            } catch (e: Exception) {
+                _error.postValue("Failed to update goal: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Deletes a goal and then refreshes the live data list.
+     * Now takes a goalId string.
+     */
+    fun deleteGoal(userId: String?, goalId: String) {
+        // Safety check for both user and goal ID
+        if (userId.isNullOrBlank() || goalId.isBlank()) {
+            _error.value = "Cannot delete goal: Invalid user or goal ID."
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // This now assumes your repository also has a deleteGoal(userId, goalId) method
+                repository.deleteGoal(userId, goalId)
+
+                // Refresh the list to update the UI
+                loadAllGoals(userId)
+            } catch (e: Exception) {
+                _error.postValue("Failed to delete goal: ${e.message}")
+            }
         }
     }
 }

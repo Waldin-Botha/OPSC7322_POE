@@ -10,11 +10,12 @@ import androidx.fragment.app.DialogFragment
 
 /**
  * Dialog to confirm deletion of a category.
- * Uses CategoriesViewModel to perform the deletion.
+ * Uses the CategoriesViewModel to perform the deletion.
  */
 class DeleteCategoryDialog(
-    private val category: CategoryEntity,
-    private val viewModel: CategoriesViewModel
+    private val category: Category,
+    private val viewModel: CategoriesViewModel,
+    private val userId: String? // --- CHANGE: Make userId nullable
 ) : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -25,7 +26,6 @@ class DeleteCategoryDialog(
         val btnDeleteCategory = view.findViewById<Button>(R.id.btnSaveCategory)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
 
-        // Set dialog texts
         tvTitle.text = "Delete Category"
         tvCategoryName.text = "Are you sure you want to delete '${category.name}'?"
 
@@ -33,18 +33,21 @@ class DeleteCategoryDialog(
             .setView(view)
             .create()
 
-        // Delete button
         btnDeleteCategory.setOnClickListener {
-            try {
-                viewModel.deleteCategory(category)
-                Toast.makeText(requireContext(), "Category deleted", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Failed to delete category", Toast.LENGTH_SHORT).show()
+            // Ensure we have a valid userId before trying to delete.
+            if (userId.isNullOrBlank()) {
+                Toast.makeText(requireContext(), "Cannot delete: User session is invalid.", Toast.LENGTH_LONG).show()
+                dialog.dismiss()
+                return@setOnClickListener
             }
+
+            // This call is now safe.
+            viewModel.deleteCategory(userId, category.id)
+
+            Toast.makeText(requireContext(), "'${category.name}' deleted", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }
 
-        // Cancel button
         btnCancel.setOnClickListener {
             dialog.dismiss()
         }

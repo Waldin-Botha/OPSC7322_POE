@@ -6,25 +6,22 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
+import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import za.ac.iie.opsc_poe_screens.databinding.FragmentGoalOverviewBinding
+
 /**
- * Fragment displaying a list of goals in a RecyclerView.
- * Shows summary of total and completed goals, and allows navigation to add or edit goals.
+ * Fragment displaying a list of goals from Firebase.
  */
 class GoalOverviewFragment : Fragment() {
 
-    // View binding for fragment layout
     private var _binding: FragmentGoalOverviewBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var adapter: GoalAdapter
     private lateinit var viewModel: GoalsViewModel
-
-    private lateinit var _btnStreaks: ImageButton
-    private lateinit var _btnGoals: ImageButton
+    private var currentUserId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,74 +34,94 @@ class GoalOverviewFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.apply {
-            _btnStreaks = btnStreaks
-            _btnGoals = btnGoals
+        // Get the user ID from our manual UserSession singleton
+        val userId = UserSession.currentUserId
+
+        // Check if the user is actually logged in
+        if (userId == null) {
+            // User is not logged in. Redirect them and stop loading this fragment.
+            Toast.makeText(requireContext(), "Your session has expired. Please sign in again.", Toast.LENGTH_LONG).show()
+            val intent = Intent(requireContext(), SignIn::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            activity?.finish()
+            return
         }
 
+        // If we reach here, the user is logged in. Store their ID.
+        currentUserId = userId
 
-        // Initialize ViewModel with the DAO and current user ID
-        val dao = AppDatabase.getDatabase(requireContext()).goalDao()
-        val currentUserId = UserSession.currentUserId ?: -1 // Get the current user ID
-        // The factory now correctly receives both arguments
-        val factory = GoalsViewModelFactory(dao, currentUserId)
+
+        // Initialize ViewModel with FirebaseRepository
+        val repository = FirebaseRepository()
+        // Use 'this' (the fragment) as the ViewModelStoreOwner
+        val factory = GoalsViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[GoalsViewModel::class.java]
 
         setupRecyclerView()
-        updateSummary() // Initial summary with empty list
+        setupButtons()
 
-        // Handle adding a new goal
+        // Observe LiveData for goals and errors
+        observeViewModel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        viewModel.loadAllGoals(currentUserId)
+    }
+
+    private fun setupButtons() {
+        // This logic is already perfect, no changes needed here.
         binding.btnAddGoal.setOnClickListener {
             val intent = Intent(requireContext(), EditGoal::class.java)
             startActivity(intent)
         }
-
-        // Observe LiveData for changes in goals and update UI
-        viewModel.allGoals.observe(viewLifecycleOwner) { goals ->
-            adapter.updateGoals(goals)
-            updateSummary(goals)
-        }
-
-        _btnGoals.setOnClickListener{
+        binding.btnGoals.setOnClickListener {
             val intent = Intent(requireContext(), Achievements::class.java)
             startActivity(intent)
         }
-
-        _btnStreaks.setOnClickListener{
+        binding.btnStreaks.setOnClickListener {
             val intent = Intent(requireContext(), Achievements::class.java)
             startActivity(intent)
         }
     }
 
-    /**
-     * Configures the RecyclerView and attaches GoalAdapter.
-     * Sets up callbacks for edit and delete actions.
-     */
+    private fun observeViewModel() {
+        // This logic is already perfect, no changes needed here.
+        viewModel.allGoals.observe(viewLifecycleOwner) { goals ->
+            adapter.updateGoals(goals)
+            updateSummary(goals)
+        }
+        viewModel.error.observe(viewLifecycleOwner) { errorMessage ->
+            if (errorMessage.isNotBlank()) {
+                Toast.makeText(requireContext(), "Error: $errorMessage", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private fun setupRecyclerView() {
         adapter = GoalAdapter(
             mutableListOf(),
             onEdit = { goal ->
-                // Launch EditGoal activity with the selected goal's ID
                 val intent = Intent(requireContext(), EditGoal::class.java)
                 intent.putExtra("goalId", goal.id)
                 startActivity(intent)
             },
             onDelete = { goal ->
-                // Delete the selected goal via ViewModel
-                viewModel.deleteGoal(goal)
+                // The viewModel is already made null-safe in a previous step.
+                // This call is now secure.
+                viewModel.deleteGoal(currentUserId, goal.id)
             }
         )
         binding.rvGoals.layoutManager = LinearLayoutManager(requireContext())
         binding.rvGoals.adapter = adapter
     }
 
-    /**
-     * Updates the summary section showing total and completed goals.
-     * @param goals List of current goals to summarize.
-     */
-    private fun updateSummary(goals: List<GoalEntity> = listOf()) {
+    private fun updateSummary(goals: List<Goal>) { // Removed default value to avoid ambiguity
+        // This logic is already perfect, no changes needed here.
         val totalGoals = goals.size
-        val completedGoals = goals.count { it.Completed }
+        val completedGoals = goals.count { it.completed }
 
         binding.tvTotalGoals.text = totalGoals.toString()
         binding.tvCompletedGoals.text = completedGoals.toString()

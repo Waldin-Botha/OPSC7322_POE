@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_number": "232741138277",
+    "firebase_url": "https://safe-spend-16d25-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "safe-spend-16d25",
+    "storage_bucket": "safe-spend-16d25.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:232741138277:android:cc0fbd56da6d74bd547b8c",
+        "android_client_info": {
+          "package_name": "za.ac.iie.opsc_poe_screens"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "232741138277-lmjhmbopqrhicuc7jq3t014jfki2g5jj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "za.ac.iie.opsc_poe_screens",
+            "certificate_hash": "edc409ecc7198fb7920c5c334741bff899e61071"
+          }
+        },
+        {
+          "client_id": "232741138277-valnu7j9uim12fqv0o8m5jeso1n2u5af.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "za.ac.iie.opsc_poe_screens",
+            "certificate_hash": "460fe44efbc03e3f1d417cbbae1d74a7b457ca17"
+          }
+        },
+        {
+          "client_id": "232741138277-cbl93512m3710q7t2bfct1l6sjfjei0t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAm0y8SADTfI530s3hVypd90nExjGPqv8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "232741138277-cbl93512m3710q7t2bfct1l6sjfjei0t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

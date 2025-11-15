@@ -10,9 +10,9 @@ import za.ac.iie.opsc_poe_screens.databinding.CardItemBinding
 import kotlin.math.abs
 
 class CardAdapter(
-    private var cards: MutableList<AccountWithTransactions>,
+    private var cards: MutableList<AccountWithBalance>,
     private val onAddClick: () -> Unit,
-    private val onCardClick: (AccountWithTransactions) -> Unit
+    private val onCardClick: (AccountWithBalance) -> Unit
 ) : RecyclerView.Adapter<CardAdapter.CardViewHolder>() {
 
     inner class CardViewHolder(val binding: CardItemBinding) : RecyclerView.ViewHolder(binding.root)
@@ -35,39 +35,38 @@ class CardAdapter(
 
     override fun onBindViewHolder(holder: CardViewHolder, position: Int) {
         if (getItemViewType(position) == TYPE_CARD) {
-            val accountWithTransactions = cards[position]
-            val account = accountWithTransactions.account
+            // 'accountWithTransactions' is now our 'accountWithBalance'
+            val accountWithBalance = cards[position]
+            val account = accountWithBalance.account
 
             val context = holder.itemView.context
             val baseColor = try {
-                ContextCompat.getColor(context, account.Colour)
+                ContextCompat.getColor(context, account.colour)
             } catch (e: Exception) {
-                account.Colour
+                account.colour
             }
             val darkerColor = createDarkerColor(baseColor, 0.7f)
 
+            // Use the new fields from AccountWithBalance
+            val income = accountWithBalance.income
+            val expenses = accountWithBalance.expenses // This is already a negative number
+            val balance = accountWithBalance.balance
 
-            val income = accountWithTransactions.totalIncome
-
-            val totalExpenses = accountWithTransactions.totalExpenses
-
-
-            val balance = account.Balance
 
             // Set card border color
             val bgDrawable = holder.binding.cardInnerLayout.background.mutate() as android.graphics.drawable.GradientDrawable
             bgDrawable.setStroke(5, baseColor)
-            holder.binding.cardInnerLayout.background = bgDrawable
 
             // Apply text and radial colors
-            holder.binding.cardTitle.text = account.AccountName
+            holder.binding.cardTitle.text = account.accountName
             holder.binding.cardBalance.text = String.format("R%.2f", balance)
             holder.binding.cardTitle.setTextColor(baseColor)
             holder.binding.cardBalance.setTextColor(baseColor)
 
-            // Radial view shows the *flow* of money, so we use the absolute value of expenses for the visual
+            // Radial view shows the *flow* of money.
+            // We use the absolute value of expenses for the visual.
             holder.binding.radialBalanceView.setArcColors(baseColor, darkerColor)
-            holder.binding.radialBalanceView.setBalances(income, abs(totalExpenses))
+            holder.binding.radialBalanceView.setBalances(income.toFloat(), abs(expenses.toFloat())) // Convert to Float for the view
 
             // Manage visibility
             holder.binding.addIcon.visibility = View.GONE
@@ -75,10 +74,10 @@ class CardAdapter(
             holder.binding.cardBalance.visibility = View.VISIBLE
             holder.binding.cardTitle.visibility = View.VISIBLE
 
-            holder.itemView.setOnClickListener { onCardClick(accountWithTransactions) }
+            holder.itemView.setOnClickListener { onCardClick(accountWithBalance) }
 
         } else {
-            // "Add Account" card
+            // "Add Account" card logic remains unchanged...
             val context = holder.itemView.context
             val addColor = ContextCompat.getColor(context, R.color.light_grey)
             val bgDrawable = holder.binding.cardInnerLayout.background.mutate() as android.graphics.drawable.GradientDrawable
@@ -88,15 +87,10 @@ class CardAdapter(
             holder.binding.cardTitle.visibility = View.VISIBLE
             holder.binding.cardTitle.text = "Add Account"
             holder.binding.cardTitle.setTextColor(addColor)
-
             holder.binding.addIcon.visibility = View.VISIBLE
             holder.binding.addIcon.setColorFilter(addColor)
-
-            // Set balance text to be empty for the "Add" card
             holder.binding.cardBalance.visibility = View.VISIBLE
             holder.binding.cardBalance.text = ""
-            holder.binding.cardBalance.setTextColor(Color.BLACK)
-
             holder.binding.radialBalanceView.visibility = View.GONE
 
             holder.itemView.setOnClickListener { onAddClick() }
@@ -111,7 +105,7 @@ class CardAdapter(
         return Color.argb(a, r.coerceIn(0, 255), g.coerceIn(0, 255), b.coerceIn(0, 255))
     }
 
-    fun updateCards(newCards: List<AccountWithTransactions>) {
+    fun updateCards(newCards: List<AccountWithBalance>) {
         cards.clear()
         cards.addAll(newCards)
         notifyDataSetChanged()

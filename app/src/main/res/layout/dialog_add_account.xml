@@ -28,6 +28,17 @@
         android:padding="18dp"
         android:layout_marginTop="16dp" />
 
+    <EditText
+        android:id="@+id/inputMaxSpend"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:hint="Max Monthly Spend"
+        android:inputType="numberDecimal"
+        android:padding="18dp"
+        android:layout_marginTop="16dp" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -38,13 +49,12 @@
 
     <com.google.android.flexbox.FlexboxLayout
         android:id="@+id/colorFlexbox"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:orientation="horizontal"
         app:flexWrap="wrap"
-        app:justifyContent="flex_start"
-        app:alignItems="flex_start">
+        app:justifyContent="flex_start">
+
 
         <RadioButton
             android:id="@+id/radioRed"
@@ -52,72 +62,80 @@
             android:layout_height="wrap_content"
             android:checked="true"
             android:text="@string/red"
+            android:textColor="@android:color/holo_red_dark"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/holo_red_dark" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioGreen"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/green"
+            android:textColor="@android:color/holo_green_dark"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/holo_green_dark" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioBlue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/blue"
+            android:textColor="@android:color/holo_blue_dark"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/holo_blue_dark" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioWhite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/white"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/white" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioYellow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/yellow"
+            android:textColor="@color/yellow"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/yellow" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioOrange"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/orange"
+            android:textColor="@color/orange"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/orange" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioPink"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/pink"
+            android:textColor="@color/pink"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/pink" />
+            app:layout_flexBasisPercent="25%" />
 
         <RadioButton
             android:id="@+id/radioPurple"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/purple"
+            android:textColor="@color/purple"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/purple" />
+            app:layout_flexBasisPercent="25%" />
 
     </com.google.android.flexbox.FlexboxLayout>
 

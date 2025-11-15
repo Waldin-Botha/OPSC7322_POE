@@ -5,150 +5,124 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
 import za.ac.iie.opsc_poe_screens.databinding.ActivityAccountDetailBinding
+import kotlin.math.abs
 
-/**
- * Activity displaying details of a single account.
- * - Shows account title and balance.
- * - Lists all transactions in a RecyclerView.
- * - Provides buttons to add income or expense transactions.
- * - Displays a radial balance chart for income vs. expense.
- */
 class AccountDetail : AppCompatActivity() {
 
     private lateinit var binding: ActivityAccountDetailBinding
     private lateinit var adapter: TransactionAdapter
     private lateinit var viewModel: AccountDetailViewModel
 
-    private var accountId: Int = -1
-
-    private var currentAccount: AccountEntity? = null
+    private lateinit var accountId: String // Account ID is now a String
+    private lateinit var currentUserId: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Hide action bar and system UI
         supportActionBar?.hide()
         hideSystemUI()
 
-        // Initialize view binding
         binding = ActivityAccountDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Retrieve accountId from intent
-        accountId = intent.getIntExtra("accountId", -1)
+        // --- Refactored Initialization ---
+        accountId = intent.getStringExtra("accountId") ?: ""
+        // Get the userId directly from our UserSession singleton
+        val userId = UserSession.currentUserId
 
-        // Get the current user ID and validate both IDs
-        val currentUserId = UserSession.currentUserId
-        if (accountId == -1 || currentUserId == null || currentUserId == -1) {
+        // Check if either the accountId is missing or the user is not logged in
+        if (accountId.isBlank() || userId == null) {
             Toast.makeText(this, "Error: Invalid account or user session.", Toast.LENGTH_SHORT).show()
-            finish()
+            // If the user session is the problem, redirect to sign in
+            if (userId == null) {
+                val intent = Intent(this, SignIn::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+            }
+            finish() // Close this activity
             return
         }
+        // If we reach here, userId is valid. Store it in the class variable.
+        currentUserId = userId
 
-        // Initialize DAOs
-        val transactionDao = AppDatabase.getDatabase(this).transactionDao()
-        val accountDao = AppDatabase.getDatabase(this).accountDao()
-
-        // Create the factory with all required parameters, including the userId
-        val factory = AccountDetailViewModelFactory(accountId, transactionDao, accountDao, currentUserId)
-
-        // Create the ViewModel using the factory
+        // Initialize ViewModel with FirebaseRepository (This part is already correct)
+        val repository = FirebaseRepository()
+        val factory = AccountDetailViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[AccountDetailViewModel::class.java]
 
         setupRecyclerView()
         setupFooter()
         observeData()
+
+        // Trigger the initial data load with the correct userId
+        viewModel.loadAccountDetails(currentUserId, accountId)
     }
 
-    /**
-     * Sets up the RecyclerView for displaying transactions.
-     * Provides callbacks for editing and deleting transactions.
-     */
     private fun setupRecyclerView() {
-        val dao = AppDatabase.getDatabase(this).transactionDao()
+        // NOTE: Your TransactionAdapter must be updated to use `TransactionDetails`
         adapter = TransactionAdapter(
-            onEdit = { transaction ->
-                // Open EditTransaction activity for the selected transaction
+            onEdit = { transactionDetails ->
                 val intent = Intent(this, EditTransaction::class.java)
-                intent.putExtra("transactionId", transaction.transaction.id)
+                intent.putExtra("transactionId", transactionDetails.transaction.id)
                 startActivity(intent)
             },
-            onDelete = { transaction ->
-                // Delete transaction and adjust account balance
-                lifecycleScope.launch {
-                    dao.deleteTransactionAndAdjustBalance(transaction.transaction)
-                }
+            onDelete = { transactionDetails ->
+                // Call the ViewModel to handle deletion
+                viewModel.deleteTransaction(currentUserId, transactionDetails.transaction.id, accountId)
             },
             transactions = mutableListOf()
         )
-
         binding.rvTransactions.layoutManager = LinearLayoutManager(this)
         binding.rvTransactions.adapter = adapter
     }
 
-    /**
-     * Observes account and transaction data from the ViewModel.
-     * Updates RecyclerView, radial balance, and account details.
-     */
     private fun observeData() {
-        // Observe transactions
-        lifecycleScope.launch {
-            viewModel.transactions.collect { transactions ->
-                adapter.updateTransactions(transactions.sortedByDescending { it.transaction.date })
-                updateRadialBalance(transactions)
-            }
+        // Observe the account details
+        viewModel.account.observe(this) { account ->
+            binding.tvAccountTitle.text = account?.accountName ?: "Account Details"
         }
 
-        // Observe account info
-        lifecycleScope.launch {
-            viewModel.account.collect { account ->
-                currentAccount = account
-                if (account != null) {
-                    binding.tvAccountTitle.text = account.AccountName
-                }
+        // Observe the list of transactions
+        viewModel.transactionDetails.observe(this) { transactions ->
+            // Update the adapter, sorting by date
+            adapter.updateTransactions(transactions.sortedByDescending { it.transaction.date })
+            // Update the UI with new totals
+            updateBalancesAndChart(transactions)
+        }
+
+        // Observe for any errors
+        viewModel.error.observe(this) { error ->
+            if (error.isNotBlank()) {
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    /**
-     * Updates the radial balance view and summary text views.
-     * @param transactions List of transactions for this account
-     */
-    private fun updateRadialBalance(transactions: List<TransactionWithAccountAndCategory>) {
-        val initialBalance = currentAccount?.Balance ?: 0f
-
+    private fun updateBalancesAndChart(transactions: List<TransactionDetails>) {
+        // Calculate income, expense, and final balance from the list of transactions
         val income = transactions.filter { it.transaction.amount >= 0 }
-            .sumOf { it.transaction.amount.toDouble() }
-            .toFloat()
+            .sumOf { it.transaction.amount }
 
         val expense = transactions.filter { it.transaction.amount < 0 }
-            .sumOf { it.transaction.amount.toDouble() }
-            .toFloat()
+            .sumOf { it.transaction.amount }
 
-        val currentBalance = initialBalance
+        val currentBalance = income + expense
         binding.tvBalance.text = "R ${"%.2f".format(currentBalance)}"
 
-        binding.radialBalanceView.setBalances(income, -expense) // Use negative expense for visual representation
+        // Update the radial chart (pass Float values)
+        binding.radialBalanceView.setBalances(income.toFloat(), abs(expense.toFloat()))
 
+        // Update the total summary text views
         binding.tvTotalIncome.text = "R ${"%.2f".format(income)}"
-        binding.tvTotalExpense.text = "R ${"%.2f".format(-expense)}" // Show expense as a positive number
+        binding.tvTotalExpense.text = "R ${"%.2f".format(abs(expense))}"
     }
 
-    /**
-     * Sets up footer buttons: Back, Add Income, Add Expense.
-     */
     private fun setupFooter() {
         binding.btnBack.setOnClickListener { finish() }
 
+        // Pass the String accountId to the next activities
         binding.btnAddIncome.setOnClickListener {
             val intent = Intent(this, CreateIncome::class.java)
             intent.putExtra("accountId", accountId)
@@ -162,14 +136,20 @@ class AccountDetail : AppCompatActivity() {
         }
     }
 
-    /**
-     * Hides system UI elements for an immersive experience.
-     */
-    private fun hideSystemUI() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowCompat.getInsetsController(window, window.decorView)?.let { controller ->
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    override fun onResume() {
+        super.onResume()
+        // Reload data every time the screen is shown to reflect changes
+        // made in other activities (like adding a new transaction).
+        if (::accountId.isInitialized && ::currentUserId.isInitialized) {
+            viewModel.loadAccountDetails(currentUserId, accountId)
         }
+    }
+
+    private fun hideSystemUI() {
+        val decorView = window.decorView
+        val uiOptions = (View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+        decorView.systemUiVisibility = uiOptions
     }
 }

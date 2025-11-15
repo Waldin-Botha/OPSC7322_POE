@@ -17,9 +17,9 @@ import androidx.recyclerview.widget.RecyclerView
  * @param onDelete Callback when the delete button is clicked
  */
 class CategoryAdapter(
-    private var categories: MutableList<CategoryEntity>,
-    private val onEdit: (CategoryEntity) -> Unit,
-    private val onDelete: (CategoryEntity) -> Unit
+    private var categories: MutableList<Category>,
+    private val onEdit: (Category) -> Unit,
+    private val onDelete: (Category) -> Unit
 ) : RecyclerView.Adapter<CategoryAdapter.VH>() {
 
     /**
@@ -72,7 +72,7 @@ class CategoryAdapter(
      *
      * @param newCategories List of new categories
      */
-    fun updateCategories(newCategories: List<CategoryEntity>) {
+    fun updateCategories(newCategories: List<Category>) {
         categories.clear()
         categories.addAll(newCategories)
         notifyDataSetChanged()

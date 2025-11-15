@@ -8,15 +8,11 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class EditCategoryDialog(
-    private val category: CategoryEntity?,
+    private val category: Category?,
     private val isIncome: Boolean,
-    private val onSave: (CategoryEntity) -> Unit
+    private val onSave: (Category) -> Unit
 ) : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -27,24 +23,24 @@ class EditCategoryDialog(
         val btnSave = view.findViewById<Button>(R.id.btnSaveCategory)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
 
-        val database = AppDatabase.getDatabase(requireContext())
-        val categoryDao = database.categoryDao()
 
-        var cat = category ?: CategoryEntity(
-            id = 0,
+        // Create a temporary 'Category' object to hold changes.
+        // If we are editing, use the passed-in category.
+        // If we are creating a new one, create a default blank object.
+        var tempCategory = category ?: Category(
+            id = "", // Let Firebase generate the ID
             name = "",
-            iconId = R.drawable.ic_gifts_foreground,
-            isIncome = isIncome,
-            userId = UserSession.currentUserId
+            iconId = R.drawable.ic_gifts_foreground, // A default icon
+            isIncome = isIncome
         )
 
-        etName.setText(cat.name)
-        ivIcon.setImageResource(cat.iconId)
+        etName.setText(tempCategory.name)
+        ivIcon.setImageResource(tempCategory.iconId)
 
         btnChangeIcon.setOnClickListener {
-            // Open the IconPickerDialog and get the selected icon
+
             IconPickerDialog { selectedIconId ->
-                cat = cat.copy(iconId = selectedIconId)
+                tempCategory = tempCategory.copy(iconId = selectedIconId)
                 ivIcon.setImageResource(selectedIconId)
             }.show(parentFragmentManager, "icon_picker")
         }
@@ -61,32 +57,10 @@ class EditCategoryDialog(
                 return@setOnClickListener
             }
 
-            // Launch a coroutine to handle the entire database interaction
-            lifecycleScope.launch {
-                // 1. Check for a duplicate on a background thread
-                val existingCategory = categoryDao.getPossibleCategoryByName(name, UserSession.currentUserId)
+            tempCategory = tempCategory.copy(name = name)
 
-                // 2. Perform the check and update the UI from the Main thread
-                withContext(Dispatchers.Main) {
-                    // Check if a category was found AND that it's not the one we are currently editing
-                    if (existingCategory != null && existingCategory.id != cat.id) {
-                        Toast.makeText(requireContext(), "A category with this name already exists", Toast.LENGTH_SHORT).show()
-                        etName.text.clear()
-                    } else {
-                        // No duplicate found, proceed to save
-                        cat = cat.copy(name = name)
-
-                        // Launch a new coroutine for the update operation
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            categoryDao.updateCategory(cat)
-                        }
-
-                        // Notify the listener and dismiss the dialog
-                        onSave(cat)
-                        dialog.dismiss()
-                    }
-                }
-            }
+            onSave(tempCategory)
+            dialog.dismiss()
         }
 
         btnCancel.setOnClickListener { dialog.dismiss() }

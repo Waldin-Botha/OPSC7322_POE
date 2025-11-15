@@ -3,17 +3,16 @@ package za.ac.iie.opsc_poe_screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 
-// The Factory now needs the userId as well.
+/**
+ * Factory for creating GoalsViewModel with a FirebaseRepository.
+ */
 class GoalsViewModelFactory(
-    private val dao: GoalDao,
-    private val userId: Int
+    private val repository: FirebaseRepository
 ) : ViewModelProvider.Factory {
-
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GoalsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            // Pass the userId to the ViewModel's constructor.
-            return GoalsViewModel(dao, userId) as T
+            return GoalsViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

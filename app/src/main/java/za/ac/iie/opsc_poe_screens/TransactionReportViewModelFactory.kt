@@ -4,19 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 
 /**
- * Factory for creating a TransactionReportViewModel.
- * It now requires AccountDao, TransactionDao, and the user's ID.
+ * Factory for creating TransactionReportViewModel with a FirebaseRepository.
+ * (This class remains unchanged).
  */
-class TransactionReportViewModelFactory(
-    private val accountDao: AccountDao,
-    private val transactionDao: TransactionDao,
-    private val userId: Int
-) : ViewModelProvider.Factory {
-
+class TransactionReportViewModelFactory(private val repository: FirebaseRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TransactionReportViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TransactionReportViewModel(accountDao, transactionDao, userId) as T
+            return TransactionReportViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

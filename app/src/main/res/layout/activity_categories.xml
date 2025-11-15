@@ -93,7 +93,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/cvMain"
             tools:layout_editor_absoluteX="26dp"
-            android:name="za.ac.iie.opsc_poe_screens.ui.CategoriesListFragment"
+            android:name="za.ac.iie.opsc_poe_screens.ui.IncomeCategoriesListFragment"
             />
 
     </LinearLayout>

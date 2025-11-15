@@ -38,7 +38,7 @@ interface AccountDao {
     /**
      * Inserts default accounts for a new user.
      */
-    @Transaction
+    //@Transaction
     suspend fun createDefaultAccountsForUser(userId: Int) {
         val accounts = listOf(
             AccountEntity(
@@ -97,7 +97,7 @@ interface CategoryDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     fun getTransactionCountForCategory(categoryId: Int): Int
 
-    @Transaction
+    //@Transaction
     suspend fun insertDefaultCategoriesForUser(userId: Int): List<Long> {
         val incomeCategories = listOf(
             CategoryEntity(name = "Salary", iconId = R.drawable.ic_dollar_foreground, isIncome = true, userId = userId),
@@ -142,11 +142,11 @@ interface TransactionDao {
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 
-    @Transaction
+    //@Transaction
     @Query("SELECT * FROM transactions WHERE userId = :userId ORDER BY date DESC")
     fun getAllTransactionsWithDetails(userId: Int): Flow<List<TransactionWithAccountAndCategory>>
 
-    @Transaction
+    //@Transaction
     @Query("SELECT * FROM transactions WHERE accountId = :accountId AND userId = :userId ORDER BY date DESC")
     fun getTransactionsForAccount(accountId: Int, userId: Int): Flow<List<TransactionWithAccountAndCategory>>
 
@@ -156,7 +156,7 @@ interface TransactionDao {
     @Query("UPDATE accounts SET balance = balance - :amount WHERE id = :accountId")
     suspend fun adjustAccountBalance(accountId: Int, amount: Float)
 
-    @Transaction
+    //@Transaction
     suspend fun deleteTransactionAndAdjustBalance(transaction: TransactionEntity) {
         adjustAccountBalance(transaction.accountId, -transaction.amount)
         deleteTransaction(transaction)
@@ -178,7 +178,7 @@ interface TransactionDao {
      * Get transactions for an account within a specific date range as LiveData.
      * This is the function that was missing.
      */
-    @Transaction
+    //@Transaction
     @Query(
         "SELECT * FROM transactions WHERE accountId = :accountId AND userId = :userId AND date BETWEEN :start AND :end ORDER BY date DESC"
     )
@@ -211,7 +211,7 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE id = :goalId")
     suspend fun getGoalById(goalId: Int): GoalEntity?
 
-    @Transaction
+    //@Transaction
     suspend fun insertDefaultGoalsForUser(userId: Int): List<Long> {
         val defaultGoals = listOf(
             GoalEntity(GoalName = "Save Money", Description = "Save up to R1500", Amount = 1500, CurrentAmount = 0, Completed = false, Bonus = false, userId = userId),

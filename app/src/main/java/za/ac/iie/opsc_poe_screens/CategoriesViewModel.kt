@@ -1,63 +1,88 @@
 package za.ac.iie.opsc_poe_screens
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-/**
- * ViewModel for managing income and expense categories.
- * Provides LiveData streams for observing changes and methods for CRUD operations.
- *
- * @param dao DAO for accessing category data
- */
-class CategoriesViewModel(private val dao: CategoryDao) : ViewModel() {
+class CategoriesViewModel(private val repository: FirebaseRepository) : ViewModel() {
 
-    /** LiveData emitting all income categories from the database. */
-    val incomeCategories: LiveData<List<CategoryEntity>> = dao.getLiveIncomeCategories(UserSession.currentUserId)
+    private val _allCategories = MutableLiveData<List<Category>>()
 
-    /** LiveData emitting all expense categories from the database. */
-    val expenseCategories: LiveData<List<CategoryEntity>> = dao.getLiveExpenseCategories(UserSession.currentUserId)
+    // LiveData for expense categories, derived from the full list
+    val expenseCategories: LiveData<List<Category>> = _allCategories.map { categories ->
+        categories.filter { !it.isIncome }
+    }
 
-    /** Adds a new category to the database asynchronously. */
-    fun addCategory(category: CategoryEntity) = viewModelScope.launch {
-        withContext(Dispatchers.IO) {
-            dao.insertCategory(category)
+    // LiveData for income categories, derived from the full list
+    val incomeCategories: LiveData<List<Category>> = _allCategories.map { categories ->
+        categories.filter { it.isIncome }
+    }
+
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> = _error
+
+    fun loadCategories(userId: String?) {
+        // If the userId is null, do not proceed.
+        if (userId == null) {
+            _error.value = "User ID is missing. Cannot load categories."
+            _allCategories.value = emptyList() // Clear old data
+            return
+        }
+        viewModelScope.launch {
+            try {
+                _allCategories.value = repository.getUserCategories(userId)
+            } catch (e: Exception) {
+                _error.value = "Failed to load categories: ${e.message}"
+            }
         }
     }
 
-    /** Deletes an existing category from the database asynchronously. */
-    fun deleteCategory(category: CategoryEntity) = viewModelScope.launch {
-        dao.deleteCategory(category)
+    fun addCategory(userId: String?, category: Category) {
+        if (userId == null) { _error.value = "Cannot add category: User not logged in."; return }
+        viewModelScope.launch {
+            try {
+                repository.addCategory(userId, category)
+                loadCategories(userId) // Refresh the list
+            } catch (e: Exception) {
+                _error.value = "Failed to add category: ${e.message}"
+            }
+        }
     }
 
-    /** Updates an existing category in the database asynchronously. */
-    fun updateCategory(category: CategoryEntity) = viewModelScope.launch {
-        dao.updateCategory(category)
+    fun updateCategory(userId: String?, category: Category) {
+        if (userId == null) { _error.value = "Cannot add category: User not logged in."; return }
+        viewModelScope.launch {
+            try {
+                repository.updateCategory(userId, category)
+                loadCategories(userId) // Refresh the list
+            } catch (e: Exception) {
+                _error.value = "Failed to update category: ${e.message}"
+            }
+        }
+    }
+
+    fun deleteCategory(userId: String?, categoryId: String) {
+        if (userId == null) { _error.value = "Cannot add category: User not logged in."; return }
+        viewModelScope.launch {
+            try {
+                repository.deleteCategory(userId, categoryId)
+                loadCategories(userId) // Refresh the list
+            } catch (e: Exception) {
+                _error.value = "Failed to delete category: ${e.message}"
+            }
+        }
     }
 }
 
 /**
- * Factory class for creating instances of [CategoriesViewModel] with a specific DAO.
- *
- * @param dao DAO for accessing category data
+ * Factory for creating CategoriesViewModel with a FirebaseRepository.
  */
-class CategoriesViewModelFactory(private val dao: CategoryDao) : ViewModelProvider.Factory {
-
-    /**
-     * Creates a new instance of the given [modelClass].
-     *
-     * @param modelClass The class of the ViewModel to create
-     * @return A new instance of [CategoriesViewModel] if requested
-     * @throws IllegalArgumentException if the requested class is unknown
-     */
+class CategoriesViewModelFactory(
+    private val repository: FirebaseRepository
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CategoriesViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return CategoriesViewModel(dao) as T
+            return CategoriesViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -4,10 +4,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
-import android.widget.*
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import za.ac.iie.opsc_poe_screens.databinding.ActivityAccountsBinding
@@ -15,51 +16,54 @@ import za.ac.iie.opsc_poe_screens.databinding.ActivityAccountsBinding
 class AccountActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAccountsBinding
-    private lateinit var userViewModel: UserViewModel // Add ViewModel reference
+    private lateinit var repository: FirebaseRepository // Use our repository
+    private var currentUserId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityAccountsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         supportActionBar?.hide()
 
-        val decorView = getWindow().getDecorView()
+        // Initialize our repository
+        repository = FirebaseRepository()
+
+        hideSystemUI()
+
+        // Load user data and set up listeners
+        loadAndDisplayUserData()
+        setupClickListeners()
+    }
+
+    private fun hideSystemUI() {
+        val decorView = window.decorView
         val uiOptions = (View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
-        decorView.setSystemUiVisibility(uiOptions)
-
-        // --- ViewModel Initialization ---
-        val userDao = AppDatabase.getDatabase(this).userDao()
-        val factory = UserViewModelFactory(userDao)
-        userViewModel = ViewModelProvider(this, factory)[UserViewModel::class.java]
-
-        // Load user data and display it
-        loadAndDisplayUserData()
-
-        // Set click listeners for all interactive elements
-        setupClickListeners()
-
+        decorView.systemUiVisibility = uiOptions
     }
 
     private fun loadAndDisplayUserData() {
+        // Get username and ID from our UserSession singleton
+        val username = UserSession.currentUsername
+        currentUserId = UserSession.currentUserId
 
-        val username = UserSession.currentUsername ?: "Unknown"
-        binding.tvEditableUsername.text = username
-        binding.tvEditablePasswordText.text = "**********" // Mask password for security
+        if (currentUserId != null && username != null) {
+            // Display the username from the session
+            binding.tvEditableUsername.text = username
+            binding.tvEditablePasswordText.text = "**********" // Keep password masked
+        } else {
+            // User is not logged in, redirect them.
+            Toast.makeText(this, "User session not found. Please sign in.", Toast.LENGTH_LONG).show()
+            goToSignIn()
+        }
     }
 
     private fun setupClickListeners() {
         // --- SIGN OUT LOGIC ---
         binding.btnProceed.setOnClickListener {
             if (binding.cbConfirmation.isChecked) {
-                clearUserSession()
-                val intent = Intent(this, SignIn::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                finish() // Finish this activity
+                signOutAndGoToSignIn()
             } else {
                 Toast.makeText(this, "Please check the confirmation box to sign out.", Toast.LENGTH_SHORT).show()
             }
@@ -68,7 +72,7 @@ class AccountActivity : AppCompatActivity() {
         // --- DELETE ACCOUNT LOGIC ---
         binding.btnProceedDelete.setOnClickListener {
             if (binding.cbConfirm.isChecked) {
-                deleteCurrentUser()
+                confirmAccountDeletion()
             } else {
                 Toast.makeText(this, "Please check the confirmation box to delete your account.", Toast.LENGTH_SHORT).show()
             }
@@ -78,106 +82,104 @@ class AccountActivity : AppCompatActivity() {
             finish() // Simply finish the activity to go back
         }
 
-
         binding.btnEditPassword.setOnClickListener {
-            showEditDialog("password")
+            showEditPasswordDialog()
         }
     }
 
-    private fun showEditDialog(fieldToEdit: String) {
+    private fun showEditPasswordDialog() {
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("Edit $fieldToEdit")
+        builder.setTitle("Change Password")
 
-        val input = EditText(this)
-        if (fieldToEdit == "password") {
-            input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = "Enter new password"
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(50, 20, 50, 20) }
         }
-        val layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            setMargins(50, 20, 50, 20)
-        }
-        input.layoutParams = layoutParams
         builder.setView(input)
 
         builder.setPositiveButton("Save") { dialog, _ ->
-            val newValue = input.text.toString().trim()
-            if (newValue.isNotEmpty()) {
-                updateUserValue(fieldToEdit, newValue)
+            val newPassword = input.text.toString().trim()
+            if (newPassword.length >= 6) {
+                // Call our new manual password update method
+                updateUserPassword(newPassword)
                 dialog.dismiss()
             } else {
-                Toast.makeText(this, "$fieldToEdit cannot be empty", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
             }
         }
         builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
         builder.show()
     }
 
-    private fun updateUserValue(field: String, value: String) {
-        val userId = UserSession.currentUserId
-        if (userId == null || userId == -1) {
-            Toast.makeText(this, "Error: User session not found.", Toast.LENGTH_SHORT).show()
+    private fun updateUserPassword(newPassword: String) {
+        val userId = currentUserId
+        if (userId == null) {
+            Toast.makeText(this, "Cannot update password: User not logged in.", Toast.LENGTH_SHORT).show()
             return
         }
 
         lifecycleScope.launch {
-            val currentUser = userViewModel.getUser(userId)
-            if (currentUser != null) {
-                val updatedUser = if (field == "username") {
-                    currentUser.copy(username = value)
-                } else { // password
-                    currentUser.copy(passwordHash = value) // TODO hash password
-                }
-
-                userViewModel.updateUser(updatedUser)
-
-                // Update session and UI
-                if (field == "username") {
-                    UserSession.currentUsername = value
-                    binding.tvEditableUsername.text = value
-                } else {
-                    UserSession.currentPassword = value
-                }
-                Toast.makeText(this@AccountActivity, "$field updated successfully!", Toast.LENGTH_SHORT).show()
+            try {
+                repository.updateUserPassword(userId, newPassword)
+                Toast.makeText(this@AccountActivity, "Password updated successfully!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@AccountActivity, "Failed to update password: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
+    private fun confirmAccountDeletion() {
+        AlertDialog.Builder(this)
+            .setTitle("DELETE ACCOUNT")
+            .setMessage("This action is permanent and cannot be undone. All your data will be lost. Are you absolutely sure?")
+            .setPositiveButton("DELETE") { _, _ -> deleteCurrentUser() }
+            .setNegativeButton("CANCEL", null)
+            .show()
+    }
+
     private fun deleteCurrentUser() {
-        val userId = UserSession.currentUserId
-        if (userId == null || userId == -1) {
-            Toast.makeText(this, "Error: No user to delete.", Toast.LENGTH_SHORT).show()
+        val userId = currentUserId
+        if (userId == null) {
+            Toast.makeText(this, "Cannot delete account: User not logged in.", Toast.LENGTH_SHORT).show()
             return
         }
 
         lifecycleScope.launch {
-            val userToDelete = userViewModel.getUser(userId)
-            if (userToDelete != null) {
-                userViewModel.deleteUser(userToDelete)
-                Toast.makeText(this@AccountActivity, "Account deleted successfully.", Toast.LENGTH_SHORT).show()
+            try {
+                repository.deleteUserAccount(userId)
+                // Clear the session after successful deletion
+                UserSession.currentUserId = null
+                UserSession.currentUsername = null
 
-                // Sign out and navigate to Welcome screen
-                clearUserSession()
+                Toast.makeText(this@AccountActivity, "Account deleted successfully.", Toast.LENGTH_SHORT).show()
+                // Navigate to Welcome screen after deletion
                 val intent = Intent(this@AccountActivity, WelcomeScreen::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 finish()
-            } else {
-                Toast.makeText(this@AccountActivity, "Error: Could not find user to delete.", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@AccountActivity, "Could not delete account: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun clearUserSession() {
-        // Clear in-memory session
-        UserSession.currentUserId = -1
+    private fun signOutAndGoToSignIn() {
+        // Clear the user session manually
+        UserSession.currentUserId = null
         UserSession.currentUsername = null
-        UserSession.currentPassword = null
 
-        // Clear SharedPreferences
-        val sharedPreferences = getSharedPreferences("UserSession", MODE_PRIVATE)
-        sharedPreferences.edit().clear().apply()
+        goToSignIn()
+    }
+
+    private fun goToSignIn(){
         Toast.makeText(this, "You have been signed out.", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, SignIn::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }
