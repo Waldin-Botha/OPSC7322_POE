@@ -15,8 +15,8 @@ class TransferFunds : AppCompatActivity() {
     private lateinit var viewModel: TransferViewModel
     private lateinit var currentUserId: String
 
-    // Use the Firebase 'Account' model
-    private var accounts: List<Account> = emptyList()
+    // The list now holds AccountWithBalance objects
+    private var accountsWithBalances: List<AccountWithBalance> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,23 +25,16 @@ class TransferFunds : AppCompatActivity() {
         supportActionBar?.hide()
         hideSystemUI()
 
-        // Get the user ID from our manual UserSession singleton
         val userId = UserSession.currentUserId
-
-        // Check if the user is actually logged in
         if (userId == null) {
-            // User is not logged in. Redirect them and stop loading this screen.
             Toast.makeText(this, "Your session has expired. Please sign in again.", Toast.LENGTH_LONG).show()
-
-            val intent = Intent(this, SignIn::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            val intent = Intent(this, SignIn::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
             startActivity(intent)
-
-            finish() // Close this activity
-            return   // Stop executing any further code in onCreate
+            finish()
+            return
         }
-
-        // If we reach here, the user is logged in. Store their ID.
         currentUserId = userId
 
         val repository = FirebaseRepository()
@@ -51,20 +44,20 @@ class TransferFunds : AppCompatActivity() {
         setupButtons()
         observeViewModel()
 
-        // Start loading the accounts
-        viewModel.loadAccounts(currentUserId)
+        // Start loading the accounts with their live balances
+        viewModel.loadAccountsWithBalances(currentUserId)
     }
 
     private fun observeViewModel() {
-        // Observer for account list to populate spinners
-        viewModel.accounts.observe(this) { accountList ->
-            accounts = accountList
+        // Observe the new LiveData
+        viewModel.accountsWithBalance.observe(this) { accountList ->
+            accountsWithBalances = accountList
 
-            // Format account names with their balances for display
+            // Format spinner text with the new, accurate balance
             val spinnerAdapter = ArrayAdapter(
                 this,
                 android.R.layout.simple_spinner_item,
-                accounts.map { "${it.accountName} (R${"%.2f".format(it.balance)})" }
+                accountsWithBalances.map { "${it.account.accountName} (R${"%.2f".format(it.balance)})" }
             )
             spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
 
@@ -72,13 +65,11 @@ class TransferFunds : AppCompatActivity() {
             binding.spToAccount.adapter = spinnerAdapter
         }
 
-        // Observer for the result of the transfer operation
         viewModel.transferResult.observe(this) { result ->
             binding.btnTransfer.isEnabled = true
-
             result.onSuccess { message ->
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-                finish() // Close the activity on success
+                finish()
             }.onFailure { error ->
                 Toast.makeText(this, error.message, Toast.LENGTH_LONG).show()
             }
@@ -87,17 +78,13 @@ class TransferFunds : AppCompatActivity() {
 
     private fun setupButtons() {
         binding.btnCancel.setOnClickListener { finish() }
-
         binding.btnTransfer.setOnClickListener {
             handleTransfer()
         }
     }
 
     private fun handleTransfer() {
-        val amountText = binding.etTransferAmount.text.toString()
-        val amount = amountText.toDoubleOrNull()
-
-        // Validate amount
+        val amount = binding.etTransferAmount.text.toString().toDoubleOrNull()
         if (amount == null || amount <= 0) {
             Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show()
             return
@@ -106,8 +93,7 @@ class TransferFunds : AppCompatActivity() {
         val fromIndex = binding.spFromAccount.selectedItemPosition
         val toIndex = binding.spToAccount.selectedItemPosition
 
-        // Check for valid spinner selections
-        if (fromIndex < 0 || toIndex < 0 || accounts.isEmpty()) {
+        if (fromIndex < 0 || toIndex < 0 || accountsWithBalances.isEmpty()) {
             Toast.makeText(this, "Accounts not loaded yet.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -117,20 +103,19 @@ class TransferFunds : AppCompatActivity() {
             return
         }
 
-        val fromAccount = accounts[fromIndex]
-        val toAccount = accounts[toIndex]
+        val fromAccountWithBalance = accountsWithBalances[fromIndex]
+        val toAccountWithBalance = accountsWithBalances[toIndex]
 
-        // Check for sufficient funds
-        if (fromAccount.balance < amount) {
-            Toast.makeText(this, "Insufficient funds in ${fromAccount.accountName}.", Toast.LENGTH_LONG).show()
+        // CRITICAL CHANGE: Check against the calculated live balance
+        if (fromAccountWithBalance.balance < amount) {
+            Toast.makeText(this, "Insufficient funds in ${fromAccountWithBalance.account.accountName}.", Toast.LENGTH_LONG).show()
             return
         }
 
-        // Disable button
         binding.btnTransfer.isEnabled = false
 
-        // Execute transfer via the ViewModel
-        viewModel.transferFunds(currentUserId, fromAccount, toAccount, amount)
+        // Pass the raw Account objects to the transfer function as before
+        viewModel.transferFunds(currentUserId, fromAccountWithBalance.account, toAccountWithBalance.account, amount)
     }
 
     private fun hideSystemUI() {

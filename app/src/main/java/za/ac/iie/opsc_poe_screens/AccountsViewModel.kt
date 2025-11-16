@@ -9,12 +9,6 @@ import kotlinx.coroutines.launch
 
 // This is a new data class to hold the combined information for the UI.
 // It replaces the old 'AccountWithTransactions'.
-data class AccountWithBalance(
-    val account: Account,
-    val balance: Double, // calculate this in the ViewModel
-    val income: Double,
-    val expenses: Double
-)
 
 class AccountsViewModel(
     private val repository: FirebaseRepository // The only dependency is our repository
@@ -120,7 +114,7 @@ class AccountsViewModel(
             try {
                 val newAccount = Account(
                     accountName = accountName,
-                    balance = startingBalance, // This could be the initial balance field
+                    //balance = startingBalance, // This could be the initial balance field
                     colour = color
                 )
                 repository.addAccount(userId, newAccount)

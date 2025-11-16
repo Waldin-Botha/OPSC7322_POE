@@ -3,11 +3,13 @@ package za.ac.iie.opsc_poe_screens
 import android.icu.util.Calendar
 import android.net.Uri
 import android.widget.Toast
+import com.google.firebase.Firebase
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
+import com.google.firebase.database.database
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
@@ -26,6 +28,13 @@ class FirebaseRepository {
     private val db = FirebaseDatabase.getInstance().reference
     private val storage = FirebaseStorage.getInstance().reference
 
+
+    companion object {
+        fun initPersistence() {
+            Firebase.database.setPersistenceEnabled(true)
+        }
+    }
+
     // ========================================
     // MANUAL AUTHENTICATION METHODS
     // ========================================
@@ -42,7 +51,14 @@ class FirebaseRepository {
         val userPassword = userNode.child("password").getValue(String::class.java)
 
         if (userPassword == password) {
-            return userNode.key!! // Return the user's ID (the key of the node)
+            val userId = userNode.key!! // Get the user's ID
+
+            // This runs AFTER a successful login, so userId is guaranteed to be valid.
+            db.child("users").child(userId).child("accounts").keepSynced(true)
+            db.child("users").child(userId).child("transactions").keepSynced(true)
+            db.child("users").child(userId).child("goals").keepSynced(true)
+
+            return userId // Return the user's ID
         } else {
             throw Exception("Invalid password.")
         }
@@ -97,8 +113,8 @@ class FirebaseRepository {
         val account1Id = db.child("users").child(userId).child("accounts").push().key!!
         val account2Id = db.child("users").child(userId).child("accounts").push().key!!
 
-        defaultAccounts.add(Account(id = account1Id, accountName = "Bank", balance = 0.0, colour = android.graphics.Color.parseColor("#388E3C")))
-        defaultAccounts.add(Account(id = account2Id, accountName = "Savings", balance = 0.0, colour = android.graphics.Color.parseColor("#1976D2")))
+        defaultAccounts.add(Account(id = account1Id, accountName = "Bank", /*balance = 0.0,*/ colour = android.graphics.Color.parseColor("#388E3C")))
+        defaultAccounts.add(Account(id = account2Id, accountName = "Savings", /*balance = 0.0,*/ colour = android.graphics.Color.parseColor("#1976D2")))
 
         // Set the data as a map of ID -> Account Object
         val accountsMap = defaultAccounts.associateBy { it.id }
@@ -168,7 +184,7 @@ class FirebaseRepository {
         val newAccount = Account(
             id = newAccountId,
             accountName = accountName,
-            balance = 0.0,
+            /*balance = 0.0,*/
             colour = colour,
             maxMonthlySpend = maxMonthlySpend
         )
@@ -279,6 +295,15 @@ class FirebaseRepository {
     suspend fun deleteTransactionAndUpdateBalance(userId: String, transactionToDelete: FinancialTransaction, account: Account) {
         val userRef = db.child("users").child(userId)
 
+        try {
+            // This is a "warm-up" read. It forces the SDK to fetch the latest user data
+            // from the server before the transaction starts. This ensures the transaction
+            // operates on the freshest data, preventing the "first-try-fails" issue.
+            userRef.get().await()
+        } catch (e: Exception) {
+            throw Exception("Failed to sync with database. Check connection.", e)
+        }
+
         // Use suspendCancellableCoroutine to wrap the callback-based API
         suspendCancellableCoroutine<Boolean> { continuation ->
             userRef.runTransaction(object : com.google.firebase.database.Transaction.Handler {
@@ -332,6 +357,18 @@ class FirebaseRepository {
     }
 
     suspend fun deleteTransaction(userId: String, transactionId: String) {
+        val userRef = db.child("users").child(userId)
+
+        try {
+            // This is a "warm-up" read. It forces the SDK to fetch the latest user data
+            // from the server before the transaction starts. This ensures the transaction
+            // operates on the freshest data, preventing the "first-try-fails" issue.
+            userRef.get().await()
+        } catch (e: Exception) {
+            // If we can't even read the user's data, we can't do a transfer.
+            throw Exception("Failed to sync with database. Check connection.", e)
+        }
+
         db.child("users").child(userId).child("transactions").child(transactionId).removeValue().await()
     }
 
@@ -406,31 +443,43 @@ class FirebaseRepository {
 
     suspend fun transferFunds(userId: String, fromAccount: Account, toAccount: Account, amount: Double) {
         val userRef = db.child("users").child(userId)
-        // *** FIX: Get the database reference to the transactions node BEFORE the transaction starts ***
         val transactionsRef = userRef.child("transactions")
+
+        try {
+            // This is a "warm-up" read. It forces the SDK to fetch the latest user data
+            // from the server before the transaction starts. This ensures the transaction
+            // operates on the freshest data, preventing the "first-try-fails" issue.
+            userRef.get().await()
+        } catch (e: Exception) {
+            // If we can't even read the user's data, we can't do a transfer.
+            throw Exception("Failed to sync with database before transfer. Check connection.", e)
+        }
 
         suspendCancellableCoroutine<Boolean> { continuation ->
             userRef.runTransaction(object : com.google.firebase.database.Transaction.Handler {
                 override fun doTransaction(currentData: MutableData): com.google.firebase.database.Transaction.Result {
-                    val fromNode = currentData.child("accounts").child(fromAccount.id)
-                    val toNode = currentData.child("accounts").child(toAccount.id)
 
-                    val currentFromBalance = fromNode.child("balance").getValue(Double::class.java) ?: 0.0
-                    val currentToBalance = toNode.child("balance").getValue(Double::class.java) ?: 0.0
 
-                    if (currentFromBalance < amount) {
+                    // Get all transactions from the current state of the database
+                    val allTransactionsNode = currentData.child("transactions")
+                    val allTransactions = allTransactionsNode.children.mapNotNull { it.getValue(FinancialTransaction::class.java) }
+
+                    // Calculate the live balance for the 'from' account
+                    val fromAccountLiveBalance = allTransactions
+                        .filter { it.accountId == fromAccount.id }
+                        .sumOf { it.amount }
+
+                    // Perform the funds check using the live balance
+                    if (fromAccountLiveBalance < amount) {
+                        // Abort the transaction if funds are insufficient. This is the cause of the error.
                         return com.google.firebase.database.Transaction.abort()
                     }
 
-                    fromNode.child("balance").value = currentFromBalance - amount
-                    toNode.child("balance").value = currentToBalance + amount
-
+                    // Get the category for the transfer
                     val transferCategory = currentData.child("categories").children.find { it.child("name").getValue(String::class.java) == "Transfer" }
                     val transferCategoryId = transferCategory?.key ?: "cat_transfer_default"
 
-                    val transactionsNode = currentData.child("transactions")
-
-                    // *** FIX: Use the 'transactionsRef' from outside the transaction to generate keys ***
+                    // Create the two new transfer transactions
                     val expenseId = transactionsRef.push().key!!
                     val incomeId = transactionsRef.push().key!!
 
@@ -451,9 +500,11 @@ class FirebaseRepository {
                         date = Date()
                     )
 
-                    transactionsNode.child(expenseId).value = expenseTransaction
-                    transactionsNode.child(incomeId).value = incomeTransaction
+                    // Add the new transactions to the database state
+                    allTransactionsNode.child(expenseId).value = expenseTransaction
+                    allTransactionsNode.child(incomeId).value = incomeTransaction
 
+                    // Commit the changes
                     return com.google.firebase.database.Transaction.success(currentData)
                 }
 
@@ -461,9 +512,10 @@ class FirebaseRepository {
                     if (error != null) {
                         continuation.resumeWithException(Exception("Transfer failed: ${error.message}"))
                     } else if (!committed) {
+                        // This is the error you were getting.
                         continuation.resumeWithException(Exception("Transfer failed: Insufficient funds or data contention."))
                     } else {
-                        continuation.resume(true) { /* Handle cancellation if needed */ }
+                        continuation.resume(true) { }
                     }
                 }
             })

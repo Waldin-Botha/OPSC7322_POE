@@ -18,7 +18,6 @@ data class User(
 data class Account(
     var id: String = "",
     var accountName: String = "",
-    var balance: Double = 0.0,
     var colour: Int = 0,
     // NEW: The maximum spending limit for this account per month.
     // Set during account creation. A value of 0.0 means no limit.
@@ -86,4 +85,11 @@ data class TransactionDetails(
     val transaction: FinancialTransaction,
     val account: Account,
     val category: Category?
+)
+
+data class AccountWithBalance(
+    val account: Account,
+    val balance: Double, // calculate this in the ViewModel
+    val income: Double,
+    val expenses: Double
 )
