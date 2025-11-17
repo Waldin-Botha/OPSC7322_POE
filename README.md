@@ -11,6 +11,7 @@ Safe spend is a comprehensive, personal finance management application for Andro
 - [Core Architecture](#core-architecture)
   - [Transaction-Based Accounting](#transaction-based-accounting)
   - [Data Synchronization](#data-synchronization)
+- Video Walkthrough of the app
 
 ## Features
 
@@ -58,3 +59,7 @@ To ensure a seamless offline experience and prevent data contention, the app emp
 2. **Proactive Syncing (keepSynced)**: After a user logs in, the app instructs Firebase to keep the accounts, transactions, and goals nodes actively synchronized.
 3. **Atomic Operations (runTransaction)**: Critical operations like fund transfers are performed within a Firebase Transaction to prevent race conditions and ensure data integrity, even with multiple users or devices.
 4. **"Warm-Up" Reads**: Before critical transactions, a `.get().await()` call is performed to ensure the local cache is fully synced with the server, preventing errors on the first attempt after an app start.
+
+
+# Video Walkthrough of the app
+  https://drive.google.com/file/d/1zXj8TA13Z7Hki01R1Y7PSmS97eb8s-E_/view?usp=sharing
