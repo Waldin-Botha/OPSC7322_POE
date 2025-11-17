@@ -112,7 +112,8 @@
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxBackgroundColor="@color/white"
             app:passwordToggleEnabled="true"
-            app:hintEnabled="false">
+            app:hintEnabled="false"
+            app:passwordToggleTint="@color/light_grey">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPassword"
