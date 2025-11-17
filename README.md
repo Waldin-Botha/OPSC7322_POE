@@ -11,7 +11,7 @@ Safe spend is a comprehensive, personal finance management application for Andro
 - [Core Architecture](#core-architecture)
   - [Transaction-Based Accounting](#transaction-based-accounting)
   - [Data Synchronization](#data-synchronization)
-- Video Walkthrough of the app
+- [Video Walkthrough of the app](#video-walkthrough-of-the-app)
 
 ## Features
 
